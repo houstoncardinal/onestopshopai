@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, Music, Loader2, Copy, Check, ArrowRight, RotateCcw } from "lucide-react";
 import { analyzeAudio, type AudioAnalysis } from "@/lib/audioAnalysis";
 import { supabase } from "@/integrations/supabase/client";
@@ -301,7 +301,7 @@ function BriefView({ genre, setGenre, mood, setMood, theme, setTheme, onGenerate
 function WritingView() {
   const lines = ["LOADING HIT FORMULA…", "STUDYING THE HOOK ZONE…", "MATCHING SYLLABLES TO TEMPO…", "DRAFTING VERSE 1…", "POLISHING THE CHORUS…", "ENGINEERING SUNO PROMPT…"];
   const [i, setI] = useState(0);
-  useState(() => { const t = setInterval(() => setI(x => (x + 1) % lines.length), 1400); return () => clearInterval(t); });
+  useEffect(() => { const t = setInterval(() => setI(x => (x + 1) % lines.length), 1400); return () => clearInterval(t); }, [lines.length]);
   return (
     <section className="pt-32 pb-32 text-center">
       <Loader2 className="w-16 h-16 mx-auto mb-8 animate-spin" strokeWidth={2.5} />
