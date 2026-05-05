@@ -13,7 +13,16 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        display: ['Archivo Black', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
       colors: {
+        ink: "hsl(var(--ink))",
+        bone: "hsl(var(--bone))",
+        acid: "hsl(var(--acid))",
+        blood: "hsl(var(--blood))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
