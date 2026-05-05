@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { buildSystemPrompt, buildUserPrompt, LYRIC_ENGINE_VERSION } from "./lyric-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,24 +15,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const sys = `You are a world-class hit songwriter and A&R strategist. You write chart-proven, emotionally devastating, hook-driven songs. You understand structure, prosody, syllable counts, internal rhyme, and how successful songs across genres actually work (the "hit formula": memorable hook in first 30s, contrast between sections, conversational verses, anthemic chorus, bridge that recontextualizes). You also know Suno AI deeply: how to write style prompts, what negative tags to use, and how its weirdness/style/audio sliders behave.`;
-
-    const user = `Write a hit-level song for this instrumental.
-
-INSTRUMENTAL ANALYSIS:
-- BPM: ${analysis.bpm}
-- Key: ${analysis.key} ${analysis.scale}
-- Duration: ${analysis.duration.toFixed(1)}s
-- Energy: ${(analysis.energy * 100).toFixed(0)}%
-- Spectral brightness: ${analysis.spectralCentroid.toFixed(0)} Hz
-- Sections: ${analysis.sections.map((s: any) => `${s.label}(${s.energy.toFixed(2)})`).join(' → ')}
-
-CREATIVE BRIEF:
-- Genre/Style: ${style}
-- Theme: ${theme}
-- Mood: ${mood}
-
-Match phrasing to the BPM. Place the biggest hook on the highest-energy section. Use the key/scale to inform vowel choices for sustained notes.`;
+    const sys = buildSystemPrompt();
+    const user = buildUserPrompt(analysis, style, theme, mood);
+    console.log(`HITLAB lyric engine v${LYRIC_ENGINE_VERSION} — generating ${style}/${mood}`);
 
     const tools = [{
       type: "function",
