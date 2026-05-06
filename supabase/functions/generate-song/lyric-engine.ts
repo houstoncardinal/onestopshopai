@@ -87,7 +87,7 @@ F. Final read: would Phoebe Bridgers, Kendrick Lamar, or Frank Ocean be embarras
 You are writing for a real artist. Real artists do not write 'feel the music in my soul'. They write the specific, the strange, the slightly wrong thing that makes a stranger cry on a bus.`;
 }
 
-export function buildUserPrompt(analysis: any, style: string, theme: string, mood: string): string {
+export function buildUserPrompt(analysis: any, style: string, theme: string, mood: string, artistDirective: string = ""): string {
   const register = GENRE_REGISTERS[style] || `Write authentically in the ${style} tradition. Avoid every cliché of the genre.`;
   const moodDir = MOOD_DIRECTIVES[mood] || `Mood: ${mood}. Find the specific behind the feeling.`;
 
@@ -106,6 +106,7 @@ The HIGHEST energy section is where the chorus or drop hook MUST land. Write the
 • Genre register: ${style}. ${register}
 • Mood directive: ${mood}. ${moodDir}
 • Theme/story seed: ${theme || "Find the truest specific story this beat is asking for. Make it small, real, and slightly uncomfortable."}
+${artistDirective}
 
 ═══ DELIVERABLE ═══
 Return via the deliver_song tool. Lyrics must read like they were written by a human songwriter at the top of their craft — not assembled from songwriting tropes. If you catch yourself writing a cliché, rewrite that line before delivering. The hook_analysis must explain the specific craft choice (not generic 'this hook is catchy because it's repetitive').`;

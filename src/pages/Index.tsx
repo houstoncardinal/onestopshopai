@@ -1,11 +1,29 @@
 import { useState, useRef, useEffect } from "react";
-import { Upload, Music, Loader2, Copy, Check, ArrowRight, RotateCcw } from "lucide-react";
+import { Upload, Music, Loader2, Copy, Check, ArrowRight, RotateCcw, Sparkles, RefreshCw, X } from "lucide-react";
 import { analyzeAudio, type AudioAnalysis } from "@/lib/audioAnalysis";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type Step = "upload" | "analyzing" | "analyzed" | "brief" | "writing" | "result";
 
+interface SectionAudit {
+  section: string;
+  syllables_per_line: number[];
+  target_range: [number, number];
+  out_of_range_lines: number;
+  cliche_hits: string[];
+  forbidden_rhyme_hits: string[];
+  rhyme_density: number;
+}
+interface RealismScores {
+  originality: number;
+  cliche_risk: number;
+  prosody_fit: number;
+  rhyme_craft: number;
+  imagery: number;
+  overall: number;
+  flags: string[];
+}
 interface SongPackage {
   title: string;
   tagline: string;
@@ -21,9 +39,23 @@ interface SongPackage {
     model_recommendation: string;
   };
 }
+interface GenerationResult {
+  song: SongPackage;
+  scores: RealismScores;
+  audits: SectionAudit[];
+  revisions?: number;
+  rationale?: string;
+}
 
 const GENRES = ["Pop", "Hip-Hop", "R&B", "Trap", "Drill", "Afrobeats", "Country", "Rock", "Indie", "EDM", "House", "Synthwave", "Folk", "Latin", "K-Pop", "Punk"];
 const MOODS = ["Euphoric", "Heartbreak", "Defiant", "Dreamy", "Aggressive", "Nostalgic", "Triumphant", "Melancholic", "Sensual", "Anthemic"];
+const ARTISTS = [
+  "Taylor Swift","Phoebe Bridgers","Kendrick Lamar","Frank Ocean","SZA","Olivia Rodrigo",
+  "Jack Antonoff (writer)","Amy Allen (writer)","Tyler, The Creator","Drake","The Weeknd",
+  "Billie Eilish","Zach Bryan","Kacey Musgraves","Mitski","Mac Miller","Burna Boy","Tems",
+  "Bad Bunny","Tame Impala","Lana Del Rey","Bon Iver","Childish Gambino","Doja Cat",
+  "Hozier","Charli XCX",
+];
 
 export default function Index() {
   const [step, setStep] = useState<Step>("upload");
@@ -33,7 +65,9 @@ export default function Index() {
   const [genre, setGenre] = useState("Pop");
   const [mood, setMood] = useState("Euphoric");
   const [theme, setTheme] = useState("");
-  const [song, setSong] = useState<SongPackage | null>(null);
+  const [artists, setArtists] = useState<string[]>([]);
+  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function onFile(f: File) {
@@ -55,12 +89,14 @@ export default function Index() {
     setStep("writing");
     try {
       const { data, error } = await supabase.functions.invoke("generate-song", {
-        body: { analysis, style: genre, theme: theme || "Whatever feels true to the energy", mood },
+        body: { analysis, style: genre, theme: theme || "Whatever feels true to the energy", mood, artists },
       });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
-      setSong(data as SongPackage);
+      setResult(data as GenerationResult);
       setStep("result");
+      const r = (data as GenerationResult).revisions || 0;
+      if (r > 0) toast.success(`Auto-revised ${r}× to hit ${(data as GenerationResult).scores.overall}/100`);
     } catch (e: any) {
       console.error(e);
       toast.error(e.message || "Generation failed");
@@ -68,8 +104,27 @@ export default function Index() {
     }
   }
 
+  async function regenerateSection(section: string, userNote?: string) {
+    if (!result || !analysis) return;
+    setRegenerating(section);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-song", {
+        body: { mode: "regenerate_section", analysis, style: genre, theme, mood, artists, section, currentSong: result.song, userNote },
+      });
+      if (error) throw error;
+      if ((data as any).error) throw new Error((data as any).error);
+      setResult(prev => prev ? { ...prev, ...(data as any) } : data as GenerationResult);
+      toast.success(`${section} rewritten`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Rewrite failed");
+    } finally {
+      setRegenerating(null);
+    }
+  }
+
   function reset() {
-    setStep("upload"); setAnalysis(null); setSong(null); setProgress(0); setTheme("");
+    setStep("upload"); setAnalysis(null); setResult(null); setProgress(0); setTheme(""); setArtists([]);
   }
 
   return (
@@ -80,9 +135,17 @@ export default function Index() {
         {step === "upload" && <UploadView onFile={onFile} fileInput={fileInput} />}
         {step === "analyzing" && <AnalyzingView progress={progress} label={progressLabel} />}
         {step === "analyzed" && analysis && <AnalysisView analysis={analysis} onContinue={() => setStep("brief")} />}
-        {step === "brief" && <BriefView genre={genre} setGenre={setGenre} mood={mood} setMood={setMood} theme={theme} setTheme={setTheme} onGenerate={generate} onBack={() => setStep("analyzed")} />}
+        {step === "brief" && <BriefView genre={genre} setGenre={setGenre} mood={mood} setMood={setMood} theme={theme} setTheme={setTheme} artists={artists} setArtists={setArtists} onGenerate={generate} onBack={() => setStep("analyzed")} />}
         {step === "writing" && <WritingView />}
-        {step === "result" && song && analysis && <ResultView song={song} analysis={analysis} onReset={reset} />}
+        {step === "result" && result && analysis && (
+          <ResultView
+            result={result}
+            analysis={analysis}
+            onReset={reset}
+            onRegenerate={regenerateSection}
+            regenerating={regenerating}
+          />
+        )}
       </main>
       <Ticker />
     </div>
@@ -103,7 +166,7 @@ function Header() {
           </div>
         </div>
         <div className="hidden md:flex mono text-xs uppercase tracking-widest gap-6">
-          <span>v1.0</span>
+          <span>v2.0</span>
           <span>EST. 2026</span>
           <span className="flex items-center gap-2"><span className="w-2 h-2 bg-acid border border-ink" /> ONLINE</span>
         </div>
@@ -142,7 +205,7 @@ function UploadView({ onFile, fileInput }: { onFile: (f: File) => void; fileInpu
     <section className="pt-16 pb-12">
       <div className="grid lg:grid-cols-12 gap-8 items-end mb-12">
         <div className="lg:col-span-8">
-          <div className="mono text-xs uppercase tracking-widest mb-4">/ ISSUE 001 — THE INSTRUMENTAL TO HIT PIPELINE</div>
+          <div className="mono text-xs uppercase tracking-widest mb-4">/ ISSUE 002 — THE INSTRUMENTAL TO HIT PIPELINE</div>
           <h1 className="display text-[12vw] lg:text-[9rem]">
             FEED IT<br />
             A BEAT.<br />
@@ -151,7 +214,7 @@ function UploadView({ onFile, fileInput }: { onFile: (f: File) => void; fileInpu
         </div>
         <div className="lg:col-span-4">
           <p className="mono text-sm leading-relaxed border-l-2 border-ink pl-4">
-            Upload any instrumental. We measure BPM, key, energy, structure. Then we write a chart-grade song to it — lyrics, hook, structure, and a full Suno prompt pack. Five steps. One masterpiece.
+            Upload any instrumental. We measure BPM, key, energy, structure. Then we write a chart-grade song — auto-audited for cliché, prosody, rhyme craft, and originality. Revise any section in one click.
           </p>
         </div>
       </div>
@@ -169,13 +232,14 @@ function UploadView({ onFile, fileInput }: { onFile: (f: File) => void; fileInpu
         <input ref={fileInput} type="file" accept="audio/*" className="hidden" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-0 mt-12 border-2 border-ink">
+      <div className="grid md:grid-cols-4 gap-0 mt-12 border-2 border-ink">
         {[
-          ["01", "DECODE", "Web Audio DSP measures tempo, key, energy, sections."],
-          ["02", "STRATEGIZE", "Hit-formula AI matches structure to your beat's peaks."],
-          ["03", "DELIVER", "Lyrics, performance notes, and a Suno-ready prompt pack."],
+          ["01", "DECODE", "DSP measures tempo, key, energy, sections."],
+          ["02", "STEER", "Pick reference artists to shape the voice."],
+          ["03", "AUDIT", "Auto-scored for cliché, prosody, originality."],
+          ["04", "REVISE", "Rewrite any section until it feels right."],
         ].map(([n, h, b], i) => (
-          <div key={n} className={`p-6 ${i < 2 ? "border-r-2 border-ink" : ""} ${i === 1 ? "bg-ink text-bone" : ""}`}>
+          <div key={n} className={`p-6 ${i < 3 ? "border-r-2 border-ink" : ""} ${i === 1 ? "bg-ink text-bone" : ""}`}>
             <div className="mono text-xs uppercase tracking-widest mb-2">{n}</div>
             <div className="display text-2xl mb-2">{h}</div>
             <div className="mono text-xs leading-relaxed">{b}</div>
@@ -256,9 +320,14 @@ function AnalysisView({ analysis, onContinue }: { analysis: AudioAnalysis; onCon
   );
 }
 
-function BriefView({ genre, setGenre, mood, setMood, theme, setTheme, onGenerate, onBack }: any) {
+function BriefView({ genre, setGenre, mood, setMood, theme, setTheme, artists, setArtists, onGenerate, onBack }: any) {
+  function toggleArtist(name: string) {
+    if (artists.includes(name)) setArtists(artists.filter((a: string) => a !== name));
+    else if (artists.length < 5) setArtists([...artists, name]);
+    else toast.error("Max 5 reference artists — fewer = sharper voice");
+  }
   return (
-    <section className="pt-12 pb-12 max-w-5xl">
+    <section className="pt-12 pb-12 max-w-6xl">
       <div className="mono text-xs uppercase tracking-widest mb-4">/ STEP 03 — CREATIVE BRIEF</div>
       <h2 className="display text-6xl mb-10">DIRECT THE A&R</h2>
 
@@ -281,6 +350,32 @@ function BriefView({ genre, setGenre, mood, setMood, theme, setTheme, onGenerate
       </div>
 
       <div className="mb-10">
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="mono text-xs uppercase tracking-widest">REFERENCE ARTISTS — STEER THE VOICE (PICK 3–5)</div>
+          <div className="mono text-xs">{artists.length}/5</div>
+        </div>
+        <div className="brut-card p-4">
+          <div className="flex flex-wrap gap-2">
+            {ARTISTS.map(a => {
+              const on = artists.includes(a);
+              return (
+                <button
+                  key={a}
+                  onClick={() => toggleArtist(a)}
+                  className={`px-3 py-2 border-2 border-ink mono text-xs uppercase font-bold transition-all ${on ? "bg-ink text-bone" : "bg-bone hover:bg-acid"}`}
+                >
+                  {on && <Check className="inline w-3 h-3 mr-1" />}{a}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mono text-[11px] text-muted-foreground mt-3 leading-relaxed">
+            We extract their craft DNA — voice, vocabulary zones, structural habits — and synthesize a NEW voice that shares the lineage without copying any line.
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-10">
         <div className="mono text-xs uppercase tracking-widest mb-3">THEME / STORY (OPTIONAL)</div>
         <textarea
           value={theme}
@@ -299,15 +394,15 @@ function BriefView({ genre, setGenre, mood, setMood, theme, setTheme, onGenerate
 }
 
 function WritingView() {
-  const lines = ["LOADING HIT FORMULA…", "STUDYING THE HOOK ZONE…", "MATCHING SYLLABLES TO TEMPO…", "DRAFTING VERSE 1…", "POLISHING THE CHORUS…", "ENGINEERING SUNO PROMPT…"];
+  const lines = ["LOADING HIT FORMULA…", "STUDYING THE HOOK ZONE…", "MATCHING SYLLABLES TO TEMPO…", "DRAFTING VERSE 1…", "AUDITING FOR CLICHÉS…", "REVISING FOR PROSODY…", "POLISHING THE CHORUS…", "ENGINEERING SUNO PROMPT…"];
   const [i, setI] = useState(0);
   useEffect(() => { const t = setInterval(() => setI(x => (x + 1) % lines.length), 1400); return () => clearInterval(t); }, [lines.length]);
   return (
     <section className="pt-32 pb-32 text-center">
       <Loader2 className="w-16 h-16 mx-auto mb-8 animate-spin" strokeWidth={2.5} />
-      <div className="mono text-xs uppercase tracking-widest mb-4">/ STEP 04 — A&R IS WRITING</div>
+      <div className="mono text-xs uppercase tracking-widest mb-4">/ STEP 04 — A&R IS WRITING & SELF-AUDITING</div>
       <div className="display text-[8vw] lg:text-6xl mb-6">{lines[i]}</div>
-      <div className="mono text-xs uppercase tracking-widest text-muted-foreground">First-class hit takes ~20 seconds</div>
+      <div className="mono text-xs uppercase tracking-widest text-muted-foreground">First-class hit takes ~30 seconds (with auto-revision)</div>
     </section>
   );
 }
@@ -325,11 +420,109 @@ function CopyBtn({ text, label }: { text: string; label?: string }) {
   );
 }
 
-function ResultView({ song, analysis, onReset }: { song: SongPackage; analysis: AudioAnalysis; onReset: () => void }) {
+function ScoreBar({ label, value, invert = false }: { label: string; value: number; invert?: boolean }) {
+  const good = invert ? value < 20 : value >= 75;
+  const mid = invert ? value < 40 : value >= 60;
+  const color = good ? "bg-acid" : mid ? "bg-ink" : "bg-blood";
+  return (
+    <div>
+      <div className="flex justify-between mono text-[11px] uppercase font-bold mb-1">
+        <span>{label}</span>
+        <span>{value}{invert ? "% RISK" : "/100"}</span>
+      </div>
+      <div className="h-2 border-2 border-ink relative bg-bone">
+        <div className={`absolute inset-y-0 left-0 ${color}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ScoresCard({ scores }: { scores: RealismScores }) {
+  const grade = scores.overall >= 85 ? "A" : scores.overall >= 75 ? "B" : scores.overall >= 65 ? "C" : "D";
+  return (
+    <div className="brut-card p-6">
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <div className="mono text-xs uppercase tracking-widest mb-1">/ LYRIC REALISM SCORE</div>
+          <div className="display text-3xl">CRAFT AUDIT</div>
+        </div>
+        <div className="text-right">
+          <div className="display text-6xl leading-none">{scores.overall}</div>
+          <div className="mono text-xs">GRADE {grade}</div>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <ScoreBar label="Originality" value={scores.originality} />
+        <ScoreBar label="Cliché Risk" value={scores.cliche_risk} invert />
+        <ScoreBar label="Prosody Fit" value={scores.prosody_fit} />
+        <ScoreBar label="Rhyme Craft" value={scores.rhyme_craft} />
+        <ScoreBar label="Imagery" value={scores.imagery} />
+      </div>
+      {scores.flags.length > 0 && (
+        <div className="mt-5 pt-4 border-t-2 border-ink">
+          <div className="mono text-[11px] uppercase font-bold mb-2">FLAGS</div>
+          <ul className="space-y-1">
+            {scores.flags.map((f, i) => (
+              <li key={i} className="mono text-[11px] flex gap-2"><span>▸</span><span>{f}</span></li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionAuditChip({ audit }: { audit?: SectionAudit }) {
+  if (!audit) return null;
+  const off = audit.out_of_range_lines;
+  const issues = (audit.cliche_hits.length || 0) + (audit.forbidden_rhyme_hits.length || 0) + off;
+  const cls = issues === 0 ? "bg-acid" : issues <= 2 ? "bg-bone" : "bg-blood text-bone";
+  const label = issues === 0 ? "CLEAN" : `${issues} ISSUE${issues>1?"S":""}`;
+  return <span className={`mono text-[10px] font-bold px-2 py-1 border-2 border-ink ${cls}`} title={`Syllables ${audit.syllables_per_line.join(",")} • target ${audit.target_range[0]}–${audit.target_range[1]}`}>{label}</span>;
+}
+
+function RegenDialog({ section, onClose, onSubmit }: { section: string; onClose: () => void; onSubmit: (note: string) => void }) {
+  const [note, setNote] = useState("");
+  return (
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="brut-card max-w-lg w-full p-6 bg-bone" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="mono text-xs uppercase tracking-widest mb-1">/ REVISE</div>
+            <div className="display text-2xl">REWRITE [{section}]</div>
+          </div>
+          <button onClick={onClose} className="border-2 border-ink p-1 hover:bg-acid"><X className="w-4 h-4" /></button>
+        </div>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="OPTIONAL DIRECTION — e.g. 'less abstract, add a phone-call image' or 'tighter syllables, more bite'"
+          className="w-full p-3 border-2 border-ink bg-bone mono text-sm h-28 focus:outline-none focus:bg-acid/20 mb-4"
+        />
+        <div className="flex gap-3 justify-end">
+          <button onClick={onClose} className="brut-btn bg-bone text-ink text-xs">CANCEL</button>
+          <button onClick={() => { onSubmit(note); onClose(); }} className="brut-btn text-xs flex items-center gap-2">
+            <Sparkles className="w-3 h-3" /> REWRITE
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultView({ result, analysis, onReset, onRegenerate, regenerating }: {
+  result: GenerationResult;
+  analysis: AudioAnalysis;
+  onReset: () => void;
+  onRegenerate: (section: string, note?: string) => void;
+  regenerating: string | null;
+}) {
+  const { song, scores, audits } = result;
+  const [regenSection, setRegenSection] = useState<string | null>(null);
   return (
     <section className="pt-12 pb-12">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-        <div className="mono text-xs uppercase tracking-widest">/ STEP 05 — DELIVERED</div>
+        <div className="mono text-xs uppercase tracking-widest">/ STEP 05 — DELIVERED {result.revisions ? `· AUTO-REVISED ${result.revisions}×` : ""}</div>
         <button onClick={onReset} className="mono text-xs uppercase font-bold flex items-center gap-2 underline"><RotateCcw className="w-3 h-3" /> NEW INSTRUMENTAL</button>
       </div>
 
@@ -344,36 +537,50 @@ function ResultView({ song, analysis, onReset }: { song: SongPackage; analysis: 
           <div className="mono text-xs uppercase tracking-widest mb-3">/ WHY THIS HOOK WORKS</div>
           <p className="text-lg leading-relaxed">{song.hook_analysis}</p>
         </div>
-        <div className="brut-card p-6">
-          <div className="mono text-xs uppercase tracking-widest mb-3">/ MATCH</div>
-          <div className="space-y-2 mono text-sm">
-            <div className="flex justify-between border-b border-ink pb-1"><span>BPM</span><span className="font-bold">{analysis.bpm}</span></div>
-            <div className="flex justify-between border-b border-ink pb-1"><span>KEY</span><span className="font-bold">{analysis.key}{analysis.scale === "minor" ? "m" : ""}</span></div>
-            <div className="flex justify-between border-b border-ink pb-1"><span>SECTIONS</span><span className="font-bold">{song.structure.length}</span></div>
-          </div>
-        </div>
+        <ScoresCard scores={scores} />
       </div>
 
       <div className="brut-card p-8 mb-10">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <div className="mono text-xs uppercase tracking-widest mb-1">/ SONG STRUCTURE</div>
+            <div className="mono text-xs uppercase tracking-widest mb-1">/ SONG STRUCTURE — REVISE ANY SECTION</div>
             <div className="display text-3xl">FULL LYRICS</div>
           </div>
           <CopyBtn text={song.full_lyrics} label="COPY ALL" />
         </div>
         <div className="space-y-6">
-          {song.structure.map((s, i) => (
-            <div key={i} className="border-l-4 border-ink pl-6">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="mono text-xs uppercase font-bold bg-ink text-bone px-2 py-1">{s.section}</span>
-                <span className="mono text-xs italic text-muted-foreground">{s.performance_note}</span>
+          {song.structure.map((s, i) => {
+            const audit = audits?.find(a => a.section === s.section);
+            const isRegen = regenerating === s.section;
+            return (
+              <div key={i} className="border-l-4 border-ink pl-6 relative">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <span className="mono text-xs uppercase font-bold bg-ink text-bone px-2 py-1">{s.section}</span>
+                  <SectionAuditChip audit={audit} />
+                  <span className="mono text-xs italic text-muted-foreground flex-1 min-w-[200px]">{s.performance_note}</span>
+                  <button
+                    onClick={() => setRegenSection(s.section)}
+                    disabled={isRegen}
+                    className="mono text-[11px] uppercase font-bold flex items-center gap-1 px-3 py-1 border-2 border-ink hover:bg-acid disabled:opacity-50"
+                  >
+                    {isRegen ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    {isRegen ? "REWRITING…" : "REWRITE"}
+                  </button>
+                </div>
+                <pre className={`font-sans text-base leading-relaxed whitespace-pre-wrap ${isRegen ? "opacity-40" : ""}`}>{s.lyrics}</pre>
               </div>
-              <pre className="font-sans text-base leading-relaxed whitespace-pre-wrap">{s.lyrics}</pre>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {regenSection && (
+        <RegenDialog
+          section={regenSection}
+          onClose={() => setRegenSection(null)}
+          onSubmit={(note) => onRegenerate(regenSection, note)}
+        />
+      )}
 
       <div className="brut-card-acid p-8 mb-6">
         <div className="display text-4xl mb-2">SUNO PROMPT PACK</div>
@@ -436,7 +643,7 @@ function ResultView({ song, analysis, onReset }: { song: SongPackage; analysis: 
 }
 
 function Ticker() {
-  const items = ["HITLAB", "★", "INSTRUMENTAL TO HIT", "★", "BPM · KEY · ENERGY · STRUCTURE", "★", "POWERED BY DSP + AI", "★"];
+  const items = ["HITLAB", "★", "INSTRUMENTAL TO HIT", "★", "SELF-AUDITING LYRIC ENGINE", "★", "POWERED BY DSP + AI", "★"];
   return (
     <div className="border-t-2 border-ink bg-ink text-bone overflow-hidden">
       <div className="ticker flex whitespace-nowrap py-3">
