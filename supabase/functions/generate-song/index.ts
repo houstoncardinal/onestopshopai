@@ -95,10 +95,8 @@ serve(async (req) => {
 
   try {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-    const url = new URL(req.url);
-    const mode = url.searchParams.get("mode") || "generate"; // generate | regenerate_section
-
     const body = await req.json();
+    const mode = body.mode || "generate"; // generate | regenerate_section
     const { analysis, style, theme, mood, artists = [] } = body;
 
     const sys = buildSystemPrompt();
