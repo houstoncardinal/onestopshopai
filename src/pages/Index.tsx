@@ -108,8 +108,8 @@ export default function Index() {
     if (!result || !analysis) return;
     setRegenerating(section);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-song?mode=regenerate_section", {
-        body: { analysis, style: genre, theme, mood, artists, section, currentSong: result.song, userNote },
+      const { data, error } = await supabase.functions.invoke("generate-song", {
+        body: { mode: "regenerate_section", analysis, style: genre, theme, mood, artists, section, currentSong: result.song, userNote },
       });
       if (error) throw error;
       if ((data as any).error) throw new Error((data as any).error);
