@@ -1,0 +1,161 @@
+// Artist craft fingerprints — terse, observable habits. Used to STEER, not imitate.
+// Style guidance only — never reproduce copyrighted lyrics.
+
+export interface ArtistProfile {
+  name: string;
+  genres: string[];
+  voice: string; // POV, register, syntax habits
+  vocabulary: string; // lexical zones, recurring noun classes
+  structure: string; // how they build verse → chorus → bridge
+  avoid: string; // tropes this artist would NEVER write
+}
+
+export const ARTIST_PROFILES: ArtistProfile[] = [
+  { name: "Taylor Swift", genres: ["Pop","Country","Indie"],
+    voice: "First-person diaristic. Past-tense narration. Long sentences spilling across line breaks. Bridges pivot to a confession.",
+    vocabulary: "Cardigans, scarves, streetlights, dates (September, 2 a.m.), names, screen doors, parking lots, twin beds. Domestic + cinematic.",
+    structure: "Verse paints scene → pre-chorus narrows the lens → chorus is the verdict. Bridge is always the emotional climb.",
+    avoid: "Generic affirmation. Vague 'baby'. Bro-speak. Anything a stranger could have written." },
+  { name: "Phoebe Bridgers", genres: ["Indie","Folk"],
+    voice: "Deadpan, dry, occasionally cruel to herself. Whispered melodies, conversational meter.",
+    vocabulary: "Skeletons, hospitals, motels, religion-as-imagery, friends' first names, weather as mood. Funny-sad.",
+    structure: "Verse-heavy, chorus often refuses catharsis. The 'hook' is sometimes a quiet line that gets weight from repetition.",
+    avoid: "Triumphant choruses. Gospel-sized payoff. Anything you'd put on a yoga playlist." },
+  { name: "Kendrick Lamar", genres: ["Hip-Hop"],
+    voice: "Multi-character. Switches POV mid-verse. Internal monologue + overheard dialogue. Polysyllabic rhyme schemes (3-5 internal per bar).",
+    vocabulary: "Compton specifics, biblical/political language, slang turned diagnostic. Numbers, dates, brand names used surgically.",
+    structure: "Verses are arguments. Hooks are mantras with teeth. Outros recontextualize the whole song.",
+    avoid: "Brag without consequence. Stock 'rags to riches'. Easy moral conclusions." },
+  { name: "Frank Ocean", genres: ["R&B","Indie"],
+    voice: "Second-person, present-tense, lower-case interior. Long unmetered lines that suddenly snap to a rhyme.",
+    vocabulary: "Cars, summers, brand names (BMW, Forever 21), seasons as time markers, water imagery, queer specificity.",
+    structure: "Through-composed. No traditional chorus needed. Hook is often a single repeated phrase used as punctuation.",
+    avoid: "Pop-radio symmetry. 'You and me forever'. Anything that announces its own emotion." },
+  { name: "SZA", genres: ["R&B"],
+    voice: "Self-interrogating. Funny one moment, devastating the next. Conversational scansion that snaps into a tight melodic phrase.",
+    vocabulary: "Therapist-speak collided with girlhood specifics. Brands, cities, ex-names, body parts in mundane settings.",
+    structure: "Verse rambles intentionally → hook lands hard with a confession. Bridge often reverses the verse's claim.",
+    avoid: "Polished feminine clichés. 'Queen' language. False composure." },
+  { name: "Olivia Rodrigo", genres: ["Pop","Rock"],
+    voice: "Texting cadence. High-school specific. Italics-energy line breaks. Spoken asides ('and yeah').",
+    vocabulary: "Cars, drivers' licenses, songs on the radio, time stamps, friends' opinions, school settings.",
+    structure: "Verse details the wound → chorus screams the question. Bridge is the breakdown.",
+    avoid: "Adult sophistication. Wine bars. Anything that tries to be timeless instead of right now." },
+  { name: "Jack Antonoff (writer)", genres: ["Pop","Indie"],
+    voice: "Producer-songwriter sensibility: hook-first, melodic over poetic. Bridges that key-change emotionally even when chord doesn't.",
+    vocabulary: "Cinematic mid-fi: Polaroids, sweaters, late summers, suburbs.",
+    structure: "Tight pop architecture: 8-bar verse, 4-bar pre, anthem chorus with one piercing image.",
+    avoid: "Wordy verses. Too-clever rhymes. Anything that gets in the way of the melody." },
+  { name: "Amy Allen (writer)", genres: ["Pop"],
+    voice: "Ultra-conversational, single-emotion focus. Modern girlspeak elevated to lyric.",
+    vocabulary: "Everyday objects (jeans, phone, mirror), modern slang used unironically.",
+    structure: "Hook lives in the first line of the chorus and never moves. Verses are setup, not exploration.",
+    avoid: "Capital-P Poetry. Metaphors that need explaining." },
+  { name: "Tyler, The Creator", genres: ["Hip-Hop","R&B"],
+    voice: "Maximalist, character-driven, swings between snarl and tenderness in one bar. Color-coded album worlds.",
+    vocabulary: "Synesthesia (colors as feelings), specific brands, real friend names, food, cars.",
+    structure: "Vignette-based songs, hook can mutate by the end of the track.",
+    avoid: "Conformist hip-hop tropes. Generic flexes." },
+  { name: "Drake", genres: ["Hip-Hop","R&B"],
+    voice: "First-person, conversational, melodic-rap fluidity. Time stamps and place names as authenticity stamps.",
+    vocabulary: "Toronto specifics, hotel suites, late-night phone calls, ex-named-by-initial.",
+    structure: "Hook is a sigh or a flex. Verses are voicemails turned into music.",
+    avoid: "Anthemic uplift. Anything that doesn't sound like a text he'd actually send." },
+  { name: "The Weeknd", genres: ["R&B","Pop","Synthwave"],
+    voice: "Cinematic detachment. Falsetto delivering damage. After-midnight present tense.",
+    vocabulary: "Neon, hotel windows, cocaine-as-metaphor (handle carefully), driving, mirrors.",
+    structure: "Verse is the descent, chorus is the surrender. Bridge often a sober interlude.",
+    avoid: "Hopeful resolution. Domestic happiness." },
+  { name: "Billie Eilish", genres: ["Pop","Alternative"],
+    voice: "Whispered conspiracy. Close-mic intimacy. Lyrics often a single image stretched across a bar.",
+    vocabulary: "Body horror as metaphor, teeth, eyes, water, threats spoken softly.",
+    structure: "Verses sub-bass quiet, chorus barely louder. Restraint as climax.",
+    avoid: "Belted choruses. Pop optimism. Adult perspective." },
+  { name: "Zach Bryan", genres: ["Country","Folk"],
+    voice: "Written-on-a-napkin authenticity. Rough edges left in. First names, place names, weather.",
+    vocabulary: "Oklahoma, gas stations, mama, beer, dogs, dirt roads — but used with specificity, never as cliché.",
+    structure: "Story-song verse → chorus that's a chant. Bridge often skipped or just a guitar.",
+    avoid: "Bro-country tropes. Truck-as-personality. Polished Nashville sheen." },
+  { name: "Kacey Musgraves", genres: ["Country","Pop"],
+    voice: "Wry, observational, Texan dryness. Plain language with one twist per line.",
+    vocabulary: "Trailer parks, rainbows used ironically, weed, weddings, small-town politics.",
+    structure: "Verses are jokes that turn out to be true. Chorus is the punchline that hurts.",
+    avoid: "Patriotic posturing. Sentimental nostalgia." },
+  { name: "Mitski", genres: ["Indie","Rock"],
+    voice: "Theatrical first-person. Operatic intensity in plain words. Self as character study.",
+    vocabulary: "Bodies, dogs, jobs, cities, hunger as metaphor.",
+    structure: "Verse builds pressure → chorus releases as image, not statement. Bridges destroy the song's premise.",
+    avoid: "Easy empowerment. Soft-girl aesthetic. Resolved endings." },
+  { name: "Mac Miller", genres: ["Hip-Hop"],
+    voice: "Conversational, self-aware, willing to be uncool. Half-rap half-sung melody.",
+    vocabulary: "Ordinary mornings, ex-girlfriends by trait not name, Pittsburgh, late-night kitchens.",
+    structure: "Verses meander then snap into a hook that's almost mumbled.",
+    avoid: "Triumphalism. Money-as-personality." },
+  { name: "Burna Boy", genres: ["Afrobeats"],
+    voice: "Codeswitching English/Pidgin/Yoruba. Call-and-response. First-person swagger with political undertone.",
+    vocabulary: "Lagos, ancestors, gold, fire, women named or implied, current events as backdrop.",
+    structure: "Mantra hook with one rotating word. Verses ride the polyrhythm rather than dominate it.",
+    avoid: "Western pop verse-structure. Apolitical fluff." },
+  { name: "Tems", genres: ["Afrobeats","R&B"],
+    voice: "Low-register, slow-burn intimacy. Spiritual undertone without religion.",
+    vocabulary: "Light/dark imagery, water, time, body as vessel.",
+    structure: "Hook repeats with melodic variation, never lyrical change. Verses set tension that hook doesn't resolve.",
+    avoid: "Bright pop affect. Western sentimentality." },
+  { name: "Bad Bunny", genres: ["Latin","Trap","Pop"],
+    voice: "Conversational Spanish, codeswitching, voice notes turned songs. Vulnerable bravado.",
+    vocabulary: "Puerto Rico specifics, brand names, body, weather, political subtext.",
+    structure: "Hook is a phrase you'd actually say. Verses are texts.",
+    avoid: "Translation-friendly genericisms. Sanitized version of himself." },
+  { name: "Tame Impala", genres: ["Indie","Synthwave"],
+    voice: "Inner-monologue stoner philosophy. Questions disguised as statements. Reverb-distance to the lyric.",
+    vocabulary: "Time, mind, water, sun, distance, mirrors. Abstract but tethered to one image per song.",
+    structure: "Hook is melodic + textural; lyrics are wallpaper that occasionally jumps out.",
+    avoid: "Concrete narrative. Direct address. Anything that breaks the dream." },
+  { name: "Lana Del Rey", genres: ["Pop","Indie"],
+    voice: "Cinematic Americana-noir. Whispered grandeur. Old-Hollywood references colliding with trap drums.",
+    vocabulary: "Highways, diamonds, cherries, Coney Island, presidents, cigarettes, faded brands.",
+    structure: "Long verses, slow chorus, repetition as incantation. No standard pop architecture.",
+    avoid: "Modern slang. Empowerment language. Quick payoffs." },
+  { name: "Bon Iver", genres: ["Indie","Folk"],
+    voice: "Falsetto fragments. Invented or near-nonsense words used for sound. Emotion before grammar.",
+    vocabulary: "Numbers, geography, weather, names half-buried, religious vocabulary secularized.",
+    structure: "Through-composed. No verse/chorus contract. Repetition + texture do the work of a hook.",
+    avoid: "Direct narrative. Pop structure. Anything that explains itself." },
+  { name: "Childish Gambino", genres: ["Hip-Hop","R&B"],
+    voice: "Code-switches between literary, comedic, and political modes. Aware of audience and uses that awareness.",
+    vocabulary: "Pop-culture references used surgically, Atlanta specifics, family, race politics.",
+    structure: "Concept-driven songs. Hook is often a contradiction.",
+    avoid: "Empty wordplay. Genre-tourist Easter eggs without point." },
+  { name: "Doja Cat", genres: ["Pop","Hip-Hop"],
+    voice: "Playful, persona-shifting, self-aware. Cadence is the joke; meaning is sometimes secondary to sound.",
+    vocabulary: "Internet-native references, body, food, bad-girl theatrics, brand names as punchlines.",
+    structure: "Hook is sticky and weird (one strange syllable). Verses are flow showcases.",
+    avoid: "Earnest love song. Sincere vulnerability without irony armor." },
+  { name: "Hozier", genres: ["Folk","Indie"],
+    voice: "Literary, mythic, Irish-Catholic guilt sublimated to romance. Long subordinate clauses.",
+    vocabulary: "Religion, nature, blood, love-as-sacrament, history.",
+    structure: "Hymn-like architecture. Verses build doctrine, chorus delivers benediction.",
+    avoid: "Modern slang. Pop-radio brevity." },
+  { name: "Charli XCX", genres: ["Pop","EDM"],
+    voice: "Hyperpop self-aware. Brat energy. Lines that sound thrown away but are the hook.",
+    vocabulary: "Clubs, pills (handle carefully), parties, jealousy, body, friends-by-name.",
+    structure: "Hook is usually one phrase repeated with mutated syllables. Verses are sketches.",
+    avoid: "Polished sincerity. Anything that takes itself too seriously." },
+];
+
+export const ARTIST_NAMES = ARTIST_PROFILES.map(a => a.name);
+
+export function buildArtistDirective(picks: string[]): string {
+  if (!picks?.length) return "";
+  const profiles = ARTIST_PROFILES.filter(a => picks.includes(a.name));
+  if (!profiles.length) return "";
+  return `
+═══ REFERENCE ARTIST DNA (steer toward these craft habits — DO NOT copy any line, image, or signature phrase from their actual catalog) ═══
+${profiles.map(p => `▸ ${p.name}
+  • Voice: ${p.voice}
+  • Vocabulary zones: ${p.vocabulary}
+  • Structural habit: ${p.structure}
+  • Would never write: ${p.avoid}`).join("\n\n")}
+
+SYNTHESIS: combine the above into a NEW voice that shares their craft DNA without resembling any one of them too closely. If you find yourself echoing a famous line, rewrite it. The artist you are writing for sounds like a peer of these writers, not a tribute act.`;
+}
